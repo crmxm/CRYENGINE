@@ -11,7 +11,8 @@ enum EHmdClass
 {
 	eHmdClass_Oculus,
 	eHmdClass_OpenVR,
-	eHmdClass_Osvr
+	eHmdClass_Osvr,
+	eHmdClass_HyperealVR,
 };
 
 enum EHmdStatus
@@ -133,6 +134,10 @@ enum EHmdController
 	eHmdController_OpenVR_1                       = 0,
 	eHmdController_OpenVR_2                       = 1,
 	eHmdController_OpenVR_MaxNumOpenVRControllers = 2,
+	// HyperealVR
+	eHmdController_HyperealVR_1					  = 0,
+	eHmdController_HyperealVR_2					  = 1,
+	eHmdController_MaxNumHyperealVRControllers	  = 2,
 };
 
 enum EHmdProjection

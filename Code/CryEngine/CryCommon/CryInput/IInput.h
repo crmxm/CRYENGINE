@@ -362,6 +362,35 @@ enum EKeyId
 
 	eKI_Motion_OpenVR_NUM_SYMBOLS = eKI_Motion_OpenVR_TouchPadBtn - eKI_Motion_OpenVR_System + 1,
 
+	//HyperealVR
+	//buttons start
+	eKI_Motion_HyperealVR_Menu = eKI_Motion_OpenVR_System + eKI_Motion_OpenVR_NUM_SYMBOLS,
+	eKI_Motion_HyperealVR_TouchpadBtn,
+	//trigger start
+	eKI_Motion_HyperealVR_IndexTrigger,
+	eKI_Motion_HyperealVR_SideTrigger,
+
+	//touch start
+	eKI_Motion_HyperealVR_IndexTriggerBtn,
+	eKI_Motion_HyperealVR_SideTriggerBtn,
+
+	//axis start
+	eKI_Motion_HyperealVR_Touchpad_X,
+	eKI_Motion_HyperealVR_Touchpad_Y,
+
+	//base and end
+	eKI_Motion_HyperealVR_End,
+	eKI_Motion_HyperealVR_Base = eKI_Motion_HyperealVR_Menu,
+
+	//other base
+	//eKI_Motion_HyperealVR_Button_Base = eKI_Motion_HyperealVR_Menu,
+	eKI_Motion_HyperealVR_Trigger_Base = eKI_Motion_HyperealVR_IndexTrigger,
+	eKI_Motion_HyperealVR_Touch_Base = eKI_Motion_HyperealVR_IndexTrigger,
+	//eKI_Motion_HyperealVR_Axis_Base = eKI_Motion_HyperealVR_Touchpad_X,
+
+	//total
+	eKI_Motion_HyperealVR_NUM_SYMBOLS = eKI_Motion_HyperealVR_End - eKI_Motion_HyperealVR_Base,
+
 	// Normal inputs should be added above
 	// eKI_SYS_Commit and below will be ignored by input blocking functionality
 	eKI_SYS_Commit = KI_SYS_BASE,

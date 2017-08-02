@@ -1,0 +1,22 @@
+#Copyright 2001-2016 Crytek GmbH / Crytek Group. All rights reserved.
+
+import os
+from waflib import Logs, Utils
+from waflib.TaskGen import feature
+from waflib.Utils import run_once
+
+def build(bld) :
+
+	bld.CryEngineModule(
+	  target = 'CryHyperealVR',
+	  vs_filter = 'CryPlugins',
+	  file_list = 'cryhyperealvr.waf_files',
+
+	  pch = 'StdAfx.cpp',
+	  
+	  includes  = Path('Code/SDKs/HyperealVR/Includes'),
+	  lib  = [ 'hvrAPI' ],
+	  
+	  win_x86_libpath = [ Path('Code/SDKs/HyperealVR/Libs/win32') ],
+	  win_x64_libpath = [ Path('Code/SDKs/HyperealVR/Libs/win64') ]
+	)
