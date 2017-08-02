@@ -17,6 +17,8 @@
 #include "../CryAction/IViewSystem.h"
 #include <CryCore/Platform/CryWindows.h>
 
+#define DEFAULT_IPD 0.064f;
+
 namespace CryVR
 {
 namespace HyperealVR
@@ -119,7 +121,7 @@ void HyperealVRDevice::GetAsymmetricCameraSetupInfo(int nEye, float & fov, float
 	asymH = proj.m[0][2] * denom * aspectRatio;
 	asymV = proj.m[1][2] * denom;
 	
-	eyeDist = interpuillaryDistance;
+	eyeDist = GetInterpupillaryDistance();
 }
 
 void HyperealVRDevice::UpdateInternal(EInternalUpdate type)
@@ -184,7 +186,7 @@ void HyperealVRDevice::UpdateTrackingState(EVRComponent type)
 			{
 				if (i == EDevice::Hmd)
 				{
-					float * pIPD = (interpuillaryDistance > 0.01f ? &interpuillaryDistance : nullptr);
+					float * pIPD = (interpupillaryDistance > 0.01f ? &interpupillaryDistance : nullptr);
 					graphicsContext->GetEyePoses(trackingState.m_pose, pIPD, eyePose);
 				}
 
@@ -297,8 +299,7 @@ void HyperealVRDevice::SubmitFrame()
 	}
 }
 
-void HyperealVRDevice::OnSetupEyeTargets(ERenderAPI api, ERenderColorSpace colorSpace, 
-	void * leftEyeHandle, void * rightEyeHandle)
+void HyperealVRDevice::OnSetupEyeTargets(void * leftEyeHandle, void * rightEyeHandle)
 {
 	for (int i = 0; i < HY_EYE_MAX; i++)
 	{
@@ -355,6 +356,96 @@ void HyperealVRDevice::OnRecentered()
 	RecenterPose();
 }
 
+HyperealVRDevice::HyperealVRDevice(HyDevice * device)
+	: refCount(1), device(device), controller(device), graphicsContext(nullptr),
+	interpupillaryDistance(0.0f), meterToWorld(1.0f), isHmdTrackingDisabled(false),
+	isQuitting(false), isResetRotKeepPitchAndRoll(false)
+{
+	memset(textureDesc, 0, sizeof(textureDesc));
+	memset(texture, 0, sizeof(texture));
+	memset(nativeStates, 0, sizeof(nativeStates));
+	memset(localStates, 0, sizeof(localStates));
+	memset(trackingFlags, 0, sizeof(trackingFlags));
+
+	CreateDevice();
+
+	gEnv->pSystem->GetHmdManager()->AddEventListener(this);
+
+	if (auto p = GetISystem()->GetISystemEventDispatcher())
+		p->RegisterListener(this);
+
+	controller.Init();
+
+	bool b;
+
+	device->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, b, HY_SUBDEV_CONTROLLER_LEFT);
+	if (b)
+		controller.OnControllerConnect(HY_SUBDEV_CONTROLLER_LEFT);
+
+	device->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, b, HY_SUBDEV_CONTROLLER_RIGHT);
+	if (b)
+		controller.OnControllerConnect(HY_SUBDEV_CONTROLLER_RIGHT);
+
+}
+
+HyperealVRDevice::~HyperealVRDevice()
+{
+	Shutdown();
+	gEnv->pSystem->GetHmdManager()->RemoveEventListener(this);
+
+	if (auto p = GetISystem()->GetISystemEventDispatcher())
+		p->RemoveListener(this);
+}
+
+void HyperealVRDevice::CreateDevice()
+{
+	float fNear = gEnv->pRenderer->GetCamera().GetNearPlane();
+	float fFar = gEnv->pRenderer->GetCamera().GetFarPlane();
+
+	HyFov eyeFov;
+	device->GetFloatArray( HY_PROPERTY_HMD_LEFT_EYE_FOV_FLOAT4_ARRAY, eyeFov.val, 4);
+	
+	float fovV = atanf(eyeFov.m_downTan) + atanf(eyeFov.m_upTan);
+	float fovH = atanf(eyeFov.m_leftTan) + atanf(eyeFov.m_rightTan);
+
+	memset(&deviceInfo, 0, sizeof(deviceInfo));
+
+	GetPreferredRenderResolution(deviceInfo.screenWidth, deviceInfo.screenHeight);
+	deviceInfo.manufacturer = GetTrackedDeviceCharPointer(HY_PROPERTY_MANUFACTURER_STRING);
+	deviceInfo.productName = GetTrackedDeviceCharPointer(HY_PROPERTY_PRODUCT_NAME_STRING);
+
+	deviceInfo.fovH = fovH;
+	deviceInfo.fovV = fovV;
+}
+
+void HyperealVRDevice::Shutdown()
+{
+	SAFE_DELETE(device);
+
+	//if initialized
+	HyShutdown();
+}
+
+// TODO: don't know why always get value from device. the param ipd seems to be meaningless under this situation.
+float HyperealVRDevice::GetInterpupillaryDistance() const
+{
+	if (interpupillaryDistance > 0.01f)
+		return interpupillaryDistance;
+
+	if (false) // a flag that denote whether system is valid is used for lumberyard, but seems to be always false.
+	{
+		bool isConnected = false;
+		HyResult res = device->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, isConnected, HY_SUBDEV_HMD);
+		{
+			float ipd = DEFAULT_IPD;
+			res = device->GetFloatValue(HY_PROPERTY_HMD_IPD_FLOAT, ipd);
+			if (hySucceeded(res))
+				return ipd;
+		}
+	}
+	return DEFAULT_IPD;
+}
+
 void HyperealVRDevice::CopyPoseState(HmdPoseState & local, HmdPoseState & nativePose, const HyTrackingState & src)
 {
 	nativePose.position = HyVec3ToVec3(src.m_pose.m_position);
@@ -376,12 +467,22 @@ void HyperealVRDevice::ResetOrientation(float yaw)
 {
 	Ang3 ang = Ang3(localStates[EDevice::Hmd].pose.orientation);
 
-	//TODO: keepPitchAndRoll?
+	if (isResetRotKeepPitchAndRoll)
+		ang.y = ang.z = 0.0f;
 
 	if (fabs(yaw) > FLT_EPSILON)
 		ang.z -= yaw;
 
 	baseLocalRot = Quat(ang);
+}
+
+const char* HyperealVRDevice::GetTrackedDeviceCharPointer(int nProperty)
+{
+	int realStrLen = 512;
+
+	char* pBuffer = new char[realStrLen];
+	device->GetStringValue(HY_PROPERTY_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
+	return const_cast<char*>(pBuffer);
 }
 
 }

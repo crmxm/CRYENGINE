@@ -47,7 +47,7 @@ public:
 	// IHyperealVRDevice
 	virtual void SubmitOverlay(int id);
 	virtual void SubmitFrame();
-	virtual void OnSetupEyeTargets(ERenderAPI api, ERenderColorSpace colorSpace, void* leftEyeHandle, void* rightEyeHandle);
+	virtual void OnSetupEyeTargets(void* leftEyeHandle, void* rightEyeHandle);
 	virtual void OnSetupOverlay(int id, ERenderAPI api, ERenderColorSpace colorSpace, void* overlayTextureHandle);
 	virtual void OnDeleteOverlay(int id);
 	virtual void GetRenderTargetSize(uint& w, uint& h);
@@ -64,7 +64,16 @@ public:
 
 public:
 	//
+	int GetRefCount() const { return refCount; };
+	static HyperealVRDevice * CreateInstance(HyDevice * device) { return new HyperealVRDevice(device); };
+
+	HyperealVRDevice(HyDevice * device);
+	virtual ~HyperealVRDevice();
+
 private:
+	void CreateDevice();
+	void Shutdown();
+
 	enum EDevice
 	{
 		Hmd,
@@ -73,6 +82,7 @@ private:
 		Totoal_Count,
 	};
 
+	float GetInterpupillaryDistance() const;
 	void CopyPoseState(HmdPoseState & local, HmdPoseState & native, const HyTrackingState & src);
 	inline void ResetOrientationAndPosition(float yaw)
 	{
@@ -84,23 +94,13 @@ private:
 	{
 		baseLocalPos = localStates[EDevice::Hmd].pose.position;
 	};
+	const char * GetTrackedDeviceCharPointer(int nProperty);
 	inline int GetFrameID() { return gEnv->pRenderer->GetFrameID(false); }
 
 	volatile int refCount;
+
 	HmdDeviceInfo deviceInfo;
-
-	HmdTrackingState nativeStates[EDevice::Totoal_Count];
-	HmdTrackingState localStates[EDevice::Totoal_Count];
-	uint32 trackingFlags[EDevice::Totoal_Count];
-
 	HyperealVRController controller;
-
-	Quat baseLocalRot;
-	Vec3 baseLocalPos;
-	float interpuillaryDistance;
-	float meterToWorld;
-	EHmdSocialScreen socialScreenType;
-	bool isHmdTrackingDisabled;
 
 	HyDevice * device;
 	HyGraphicsContext * graphicsContext;
@@ -108,6 +108,19 @@ private:
 
 	HyTextureDesc textureDesc[HY_EYE_MAX];
 	void * texture[HY_EYE_MAX][2]; //double buffering.
+
+	HmdTrackingState nativeStates[EDevice::Totoal_Count];
+	HmdTrackingState localStates[EDevice::Totoal_Count];
+	uint32 trackingFlags[EDevice::Totoal_Count];
+
+	Quat baseLocalRot;
+	Vec3 baseLocalPos;
+	float interpupillaryDistance;
+	float meterToWorld;
+	EHmdSocialScreen socialScreenType;
+	bool isHmdTrackingDisabled;
+	bool isQuitting;
+	bool isResetRotKeepPitchAndRoll;
 };
 }
 }
