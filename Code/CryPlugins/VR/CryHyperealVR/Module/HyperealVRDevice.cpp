@@ -145,6 +145,7 @@ void HyperealVRDevice::UpdateInternal(EInternalUpdate type)
 		case HyMsgType::HY_MSG_VIEW_FOCUS_CHANGED:
 			break;
 		case HyMsgType::HY_MSG_SUBDEVICE_STATUS_CHANGED:
+		{
 			HyMsgSubdeviceChange * data = (HyMsgSubdeviceChange *)msg;
 			HySubDevice subDevice = (HySubDevice)(data->m_subdevice);
 
@@ -153,6 +154,7 @@ void HyperealVRDevice::UpdateInternal(EInternalUpdate type)
 			else
 				controller.OnControllerDisconnect(subDevice);
 			break;
+		}
 		default:
 			break;
 		}
@@ -195,10 +197,10 @@ void HyperealVRDevice::UpdateTrackingState(EVRComponent type)
 				if (i == EDevice::Hmd)
 				{
 					uint32 statusFlag =
-						(trackingFlags[i] & HY_TRACKING_POSITION_TRACKED != 0 ? eHmdStatus_PositionConnected : 0) |
-						(trackingFlags[i] & HY_TRACKING_ROTATION_TRACKED != 0 ? eHmdStatus_OrientationTracked : 0) |
+						((trackingFlags[i] & HY_TRACKING_POSITION_TRACKED) != 0 ? eHmdStatus_PositionConnected : 0) |
+						((trackingFlags[i] & HY_TRACKING_ROTATION_TRACKED) != 0 ? eHmdStatus_OrientationTracked : 0) |
 						eHmdStatus_CameraPoseTracked |
-						(trackingFlags[i] ? eHmdStatus_HmdConnected | eHmdStatus_PositionConnected : 0);
+						(trackingFlags[i] ? (eHmdStatus_HmdConnected | eHmdStatus_PositionConnected) : 0);
 
 					localStates[i].statusFlags = nativeStates[i].statusFlags = statusFlag;
 				}
@@ -271,9 +273,9 @@ void HyperealVRDevice::GetPreferredRenderResolution(unsigned int & width, unsign
 {
 	int64 temp;
 	device->GetIntValue(HY_PROPERTY_HMD_RESOLUTION_X_INT, temp);
-	width = temp;
+	width = (unsigned int) temp;
 	device->GetIntValue(HY_PROPERTY_HMD_RESOLUTION_Y_INT, temp);
-	height = temp;
+	height = (unsigned int)temp;
 }
 
 void HyperealVRDevice::DisableHMDTracking(bool disable)
@@ -484,6 +486,8 @@ const char* HyperealVRDevice::GetTrackedDeviceCharPointer(int nProperty)
 	device->GetStringValue(HY_PROPERTY_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
 	return const_cast<char*>(pBuffer);
 }
+
+int HyperealVRDevice::GetFrameID() { return gEnv->pRenderer->GetFrameID(false); }
 
 }
 }

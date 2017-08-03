@@ -8,21 +8,25 @@ namespace HyperealVR
 {
 class HyperealVRDevice;
 
-class Resources
+class HyperealVRResources
 {
 public:
-	static HyperealVRDevice * GetAssociatedDevice();
+	static HyperealVRDevice * GetAssociatedDevice() { return resources ? resources->device : nullptr; }
 
 	static void Init();
-	static void PostInit();
+	static void PostInit() {};
 	static void Shutdown();
 
 private:
-	Resources();
-	~Resources();
+	HyperealVRResources();
+	~HyperealVRResources();
 
 private:
 	//
+	static HyperealVRResources * resources;
+	static bool isLibInitialized;
+
+	HyperealVRDevice * device;
 };
 }
 }

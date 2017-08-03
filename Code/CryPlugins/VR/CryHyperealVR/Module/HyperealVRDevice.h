@@ -95,7 +95,7 @@ private:
 		baseLocalPos = localStates[EDevice::Hmd].pose.position;
 	};
 	const char * GetTrackedDeviceCharPointer(int nProperty);
-	inline int GetFrameID() { return gEnv->pRenderer->GetFrameID(false); }
+	int GetFrameID();
 
 	volatile int refCount;
 

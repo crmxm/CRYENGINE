@@ -16,7 +16,9 @@ def build(bld) :
 	  
 	  includes  = Path('Code/SDKs/HyperealVR/Includes'),
 	  lib  = [ 'hvrAPI' ],
+	  win_lib = [ 'ole32', 'oleaut32' ],
 	  
 	  win_x86_libpath = [ Path('Code/SDKs/HyperealVR/Libs/win32') ],
 	  win_x64_libpath = [ Path('Code/SDKs/HyperealVR/Libs/win64') ]
+	  
 	)
